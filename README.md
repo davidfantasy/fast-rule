@@ -5,6 +5,7 @@ fast-rule是一款高性能的轻量级规则引擎，主要用于物联网等�
 # 设计方案
 fast-rule的设计思路可以参考我写的这篇文章：
 [从0到1手搓一个规则引擎（1）](https://mp.weixin.qq.com/s/yM8fjKokCnBo2zsFYsHokQ)
+[从0到1手搓一个规则引擎（2）](https://mp.weixin.qq.com/s/GmDIZz3EUFM-eL17fY5ukQ)
 
 # 快速开始
 
