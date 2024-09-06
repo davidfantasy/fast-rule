@@ -79,6 +79,7 @@ public class TestRuleEngine {
         Thread.sleep(500);
         Assertions.assertEquals(1, rule1.getHitFacts().size());
         ruleEngine.removeFactCollector(MockManualCollector.class.getSimpleName());
+        Thread.sleep(100);
         collector.mockFact("v", 8);
         Thread.sleep(500);
         Assertions.assertEquals(1, rule1.getHitFacts().size());
