@@ -3,41 +3,38 @@ package com.github.davidfantasy.fastrule;
 import cn.hutool.core.lang.Assert;
 import com.github.davidfantasy.fastrule.condition.Condition;
 import com.github.davidfantasy.fastrule.fact.Fact;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Slf4j
 public abstract class BaseRule implements Rule {
 
-    private final Condition condition;
+    protected String id;
 
-    private final String id;
+    protected String name;
 
-    private final String name;
+    protected int priority;
 
-    private final int priority;
+    protected Condition condition;
 
-    private final String description;
-
-    private final AtomicBoolean enabled = new AtomicBoolean(false);
+    protected String description;
 
     private Set<String> concernedFacts;
 
+    private final AtomicBoolean enabled = new AtomicBoolean(false);
+
     public BaseRule(String id, String name, Integer priority, String description, Condition condition) {
-        this.condition = condition;
-        this.id = id;
         Assert.notNull(condition, "condition must not be null");
         Assert.notNull(id, "id must not be null");
+        this.id = id;
         this.name = name;
-        if (priority != null) {
-            this.priority = priority;
-        } else {
-            this.priority = DEFAULT_PRIORITY;
-        }
+        this.condition = condition;
+        this.priority = Objects.requireNonNullElse(priority, DEFAULT_PRIORITY);
         this.description = description;
-        this.enable();
     }
 
     /**
@@ -48,6 +45,10 @@ public abstract class BaseRule implements Rule {
             this.concernedFacts = new HashSet<>();
         }
         this.concernedFacts.add(factId);
+    }
+
+    public void clearConcernedFacts() {
+        this.concernedFacts = null;
     }
 
     @Override
@@ -77,7 +78,17 @@ public abstract class BaseRule implements Rule {
 
     @Override
     public boolean evaluate(Fact fact) {
-        return condition.evaluate(fact);
+        if (!this.isEnabled()) {
+            log.warn("try to evaluate a disabled rule：{}，{}", this.name, this.id);
+            return false;
+        }
+        try {
+            return this.condition.evaluate(fact);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("rule condition evaluation encountered an error：{}，{}，{}", this.name, fact.getId(), e.getMessage());
+        }
+        return false;
     }
 
     @Override
@@ -100,12 +111,10 @@ public abstract class BaseRule implements Rule {
         enabled.set(false);
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof BaseRule)) return false;
-        BaseRule baseRule = (BaseRule) o;
+        if (!(o instanceof BaseRule baseRule)) return false;
         return Objects.equals(getId(), baseRule.getId());
     }
 

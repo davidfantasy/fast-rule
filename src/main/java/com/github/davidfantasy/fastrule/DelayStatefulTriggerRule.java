@@ -1,18 +1,18 @@
 package com.github.davidfantasy.fastrule;
 
-import cn.hutool.core.collection.ConcurrentHashSet;
+import cn.hutool.core.collection.CollUtil;
 import com.github.davidfantasy.fastrule.condition.Condition;
 import com.github.davidfantasy.fastrule.fact.Fact;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * 有状态的规则，会保存每个触发过当前规则的fact，同时支持规则的延迟触发。
- * 相同的采集fact对于同一规则只会触发一次，直到某个fact不再满足该规则条件时，后续的fact才会重新触发该规则
+ * 有状态的规则，会保存规则的触发状态，触发中的规则不会被再次触发，直到某个fact不再满足规则条件重置规则的触发状态；
  * 举例：
  * rule1 当 fact a>5 时触发执行
  * 当规则引擎收到 5个采集的a的值时：
@@ -21,7 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * a=8 满足，但不会执行rule1，因为前面已经触发过了
  * a=4 不满足，不会执行rule1，但会重置规则的执行状态
  * a=7 满足，执行rule1
- * 延迟触发，举例：
+ * 同时支持fact对规则的延迟触发，举例：
  * rule1 当 fact a>5 时触发执行，triggerDelayMS设置5000
  * 当规则引擎收到 4个采集的a的值时：
  * a=1 不满足，不会执行rule1
@@ -35,11 +35,11 @@ import java.util.concurrent.locks.ReentrantLock;
 @Slf4j
 public abstract class DelayStatefulTriggerRule extends BaseRule {
 
-    protected final ConcurrentHashSet<String> triggeredFactIds;
+    protected AtomicBoolean triggered;
 
     protected Map<String, ScheduledFuture<?>> delayedFacts;
 
-    private Long triggerDelayMS;
+    protected Long triggerDelayMS;
 
     protected final ReentrantLock lock = new ReentrantLock();
 
@@ -58,13 +58,39 @@ public abstract class DelayStatefulTriggerRule extends BaseRule {
 
     public DelayStatefulTriggerRule(String id, String name, Integer priority, String description, Condition condition, Long triggerDelayMS) {
         super(id, name, priority, description, condition);
-        triggeredFactIds = new ConcurrentHashSet<>();
+        triggered = new AtomicBoolean(false);
+        assignTriggerDelayMS(triggerDelayMS);
+    }
+
+    protected void assignTriggerDelayMS(Long triggerDelayMS) {
         if (triggerDelayMS != null) {
             if (triggerDelayMS < 1000) {
                 throw new IllegalArgumentException("triggerDelayMS must be greater than 1000");
             }
-            this.triggerDelayMS = triggerDelayMS;
             this.delayedFacts = new ConcurrentHashMap<>();
+            this.triggerDelayMS = triggerDelayMS;
+        } else {
+            this.triggerDelayMS = null;
+        }
+    }
+
+    public void setTriggeredStatus(boolean triggered) {
+        this.triggered.set(triggered);
+    }
+
+    public boolean hasTriggered() {
+        return this.triggered.get();
+    }
+
+    public void mergeState(DelayStatefulTriggerRule other) {
+        setTriggeredStatus(other.triggered.get());
+        this.delayedFacts = other.delayedFacts;
+    }
+
+    public void clearDelayedFacts() {
+        if (!CollUtil.isEmpty(delayedFacts)) {
+            this.delayedFacts.forEach((k, v) -> v.cancel(true));
+            this.delayedFacts.clear();
         }
     }
 
@@ -72,21 +98,33 @@ public abstract class DelayStatefulTriggerRule extends BaseRule {
     public void executeThen(Fact fact) {
         lock.lock();
         try {
-            if (triggeredFactIds.contains(fact.getId())) {
-                log.debug("fact {} is already triggered rule {},ignore current fact", fact.getId(), this.getName());
+            if (hasTriggered()) {
+                log.debug("rule {} is already triggered, ignore current fact:{}", this.getName(), fact.getId());
                 return;
-            } else {
-                triggeredFactIds.add(fact.getId());
             }
-            if (this.triggerDelayMS != null && !delayedFacts.containsKey(fact.getId())) {
+            if (this.triggerDelayMS != null) {
+                //如果延迟队列里面已经有该fact了，则忽略
+                if (delayedFacts.containsKey(fact.getId())) {
+                    log.debug("fact {} is already add to delayed queue:{}，ignored", fact.getId(), this.getName());
+                    return;
+                }
                 log.debug("current rule {} enabled  delayed triggering, the fact {} has been added to the delay queue.", fact.getId(), this.getName());
                 ScheduledFuture<?> future = delayTriggerExecutor.schedule(() -> {
-                    doExecuteThen(fact);
+                    if (hasTriggered()) {
+                        log.debug("rule {} is already triggered, ignore delay fact:{}", this.getName(), fact.getId());
+                        return;
+                    }
+                    if (doExecuteThen(fact)) {
+                        setTriggeredStatus(true);
+                    }
+                    delayedFacts.remove(fact.getId());
                 }, triggerDelayMS, TimeUnit.MILLISECONDS);
                 delayedFacts.put(fact.getId(), future);
-                return;
+            } else {
+                if (doExecuteThen(fact)) {
+                    setTriggeredStatus(true);
+                }
             }
-            doExecuteThen(fact);
         } finally {
             lock.unlock();
         }
@@ -96,33 +134,29 @@ public abstract class DelayStatefulTriggerRule extends BaseRule {
     public void executeElse(Fact fact) {
         lock.lock();
         try {
-            if (triggeredFactIds.contains(fact.getId())) {
-                triggeredFactIds.remove(fact.getId());
-                doExecuteElse(fact);
-            }
             if (this.delayedFacts != null) {
                 ScheduledFuture<?> future = delayedFacts.get(fact.getId());
                 if (future != null) {
                     future.cancel(true);
+                    delayedFacts.remove(fact.getId());
                 }
+            }
+            if (doExecuteElse(fact)) {
+                this.triggered.set(false);
             }
         } finally {
             lock.unlock();
         }
     }
 
-    @Override
-    public void enable() {
-        super.enable();
-    }
+    /**
+     * 处理触发逻辑，返回值表示是否需要更新规则的触发状态
+     */
+    protected abstract boolean doExecuteThen(Fact fact);
 
-    @Override
-    public void disable() {
-        super.disable();
-    }
-
-    protected abstract void doExecuteThen(Fact fact);
-
-    protected abstract void doExecuteElse(Fact fact);
+    /**
+     * 处理恢复逻辑，返回值表示是否需要恢复规则的触发状态
+     */
+    protected abstract boolean doExecuteElse(Fact fact);
 
 }

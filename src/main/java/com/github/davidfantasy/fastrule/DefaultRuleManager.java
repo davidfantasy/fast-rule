@@ -2,7 +2,6 @@ package com.github.davidfantasy.fastrule;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -13,15 +12,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public class DefaultRuleManager implements RuleManager {
 
-    private final TreeSet<Rule> rules = new TreeSet<>();
+    protected final TreeSet<Rule> rules = new TreeSet<>();
 
-    private final Map<String, Rule> ruleMap = new HashMap<>();
+    protected final Map<String, Rule> ruleMap = new HashMap<>();
 
-    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    protected final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
 
-    private final Lock readLock = readWriteLock.readLock();
+    protected final Lock readLock = readWriteLock.readLock();
 
-    private final Lock writeLock = readWriteLock.writeLock();
+    protected final Lock writeLock = readWriteLock.writeLock();
 
     @Override
     public void add(Rule rule) {
