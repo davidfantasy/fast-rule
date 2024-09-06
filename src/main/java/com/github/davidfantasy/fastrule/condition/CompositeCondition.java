@@ -18,4 +18,8 @@ public abstract class CompositeCondition implements Condition {
         this.conditions.add(condition);
     }
 
+    public List<Condition> getConditions() {
+        return conditions;
+    }
+
 }

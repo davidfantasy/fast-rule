@@ -85,7 +85,12 @@ public interface Rule extends Comparable<Rule> {
      */
     @Override
     default int compareTo(Rule other) {
-        return Integer.compare(other.getPriority(),this.getPriority());
+        int priorityComparison = Integer.compare(other.getPriority(), this.getPriority());
+        if (priorityComparison != 0) {
+            return priorityComparison;
+        } else {
+            return this.getId().compareTo(other.getId());
+        }
     }
 
 }

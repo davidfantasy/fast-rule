@@ -1,4 +1,4 @@
-package com.github.davidfantasy.fastrule.thirdpart.janino;
+package com.github.davidfantasy.fastrule.janino;
 
 import com.github.davidfantasy.fastrule.condition.Condition;
 import com.github.davidfantasy.fastrule.fact.Fact;

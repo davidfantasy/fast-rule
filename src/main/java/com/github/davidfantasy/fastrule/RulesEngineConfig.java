@@ -22,6 +22,7 @@ public class RulesEngineConfig {
     /**
      * 用于周期调度factCollector的线程池大小
      */
+    @Builder.Default
     private int collectorScheduledThreadPoolSize = Runtime.getRuntime().availableProcessors() * 2;
 
 }

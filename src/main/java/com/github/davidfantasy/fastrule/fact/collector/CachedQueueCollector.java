@@ -16,19 +16,16 @@ public class CachedQueueCollector implements FactCollector {
 
     private final LinkedBlockingQueue<Fact> cacheQueue;
 
-    private final List<Fact> results;
-
     public CachedQueueCollector(int capacity) {
         if (capacity <= 0) {
             throw new IllegalArgumentException("capacity must be greater than 0");
         }
         cacheQueue = new LinkedBlockingQueue<>(capacity);
-        results = new ArrayList<>();
     }
 
     @Override
     public List<Fact> collect() {
-        results.clear();
+        var results = new ArrayList<Fact>();
         try {
             //如果当前没有数据则阻塞collect，直到有数据产生,避免空轮询
             results.add(cacheQueue.take());
@@ -48,7 +45,6 @@ public class CachedQueueCollector implements FactCollector {
     @Override
     public void shutdown() {
         cacheQueue.clear();
-        results.clear();
     }
 
     protected void addFact(Fact fact) {

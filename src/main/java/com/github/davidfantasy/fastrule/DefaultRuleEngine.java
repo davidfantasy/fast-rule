@@ -40,7 +40,7 @@ public class DefaultRuleEngine implements RuleEngine {
         Assert.notNull(ruleManager, "ruleManager must not be null");
         int corePoolSize = Runtime.getRuntime().availableProcessors();
         ruleTaskExecutor = new RuleTaskExecutor(4096, corePoolSize * 2);
-        collectorExecutor = Executors.newScheduledThreadPool(rulesEngineConfig.getCollectorScheduledThreadPoolSize(),
+        collectorExecutor = Executors.newScheduledThreadPool(this.rulesEngineConfig.getCollectorScheduledThreadPoolSize(),
                 new ThreadFactory() {
                     private final AtomicInteger index = new AtomicInteger(1);
 

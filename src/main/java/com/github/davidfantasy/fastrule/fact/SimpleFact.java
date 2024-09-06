@@ -1,6 +1,7 @@
 package com.github.davidfantasy.fastrule.fact;
 
 import lombok.Getter;
+import lombok.ToString;
 
 import java.util.*;
 
@@ -8,6 +9,7 @@ import java.util.*;
  * 表示触发规则的业务事实对象，
  * 对仅单个事实数据的情况进行了特殊优化，避免创建大量的内部对象
  */
+@ToString
 public class SimpleFact implements Fact {
 
     @Getter
@@ -25,7 +27,6 @@ public class SimpleFact implements Fact {
 
     public SimpleFact(String id, String name, Object value, Long ts) {
         Objects.requireNonNull(id, "id must not be null");
-        Objects.requireNonNull(value, "value must not be null");
         this.id = id;
         this.name = name;
         this.v = value;
@@ -42,6 +43,10 @@ public class SimpleFact implements Fact {
             this.name = null;
             this.v = null;
         }
+    }
+    
+    public Object getFirstValue() {
+        return delegateMap != null ? delegateMap.values().iterator().next() : this.v;
     }
 
     @Override
