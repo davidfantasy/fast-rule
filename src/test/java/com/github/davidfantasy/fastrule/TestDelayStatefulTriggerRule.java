@@ -25,6 +25,7 @@ public class TestDelayStatefulTriggerRule {
             int v = Integer.parseInt(fact.getValue("v").toString());
             return v < 10;
         }, null);
+        rule.enable();
         ruleManager.add(rule);
         ruleEngine.fire(new SimpleFact("fact1", "v", 7, null), true);
         Thread.sleep(100);
@@ -33,7 +34,7 @@ public class TestDelayStatefulTriggerRule {
         ruleEngine.fire(new SimpleFact("fact1", "v", 8, null), true);
         Thread.sleep(100);
         Assertions.assertEquals(1, rule.getHitFacts().size());
-        //恢复该fact id对应的触发状态
+        //恢复该规则对应的触发状态
         ruleEngine.fire(new SimpleFact("fact1", "v", 11, null), true);
         Thread.sleep(100);
         Assertions.assertEquals(1, rule.getHitFacts().size());
@@ -41,10 +42,6 @@ public class TestDelayStatefulTriggerRule {
         ruleEngine.fire(new SimpleFact("fact1", "v", 8, null), true);
         Thread.sleep(100);
         Assertions.assertEquals(2, rule.getHitFacts().size());
-        //新的fact，也会触发
-        ruleEngine.fire(new SimpleFact("fact2", "v", 8, null), true);
-        Thread.sleep(100);
-        Assertions.assertEquals(3, rule.getHitFacts().size());
     }
 
     @Test
@@ -53,6 +50,7 @@ public class TestDelayStatefulTriggerRule {
             int v = Integer.parseInt(fact.getValue("v").toString());
             return v < 10;
         }, 1000L);
+        rule.enable();
         ruleManager.add(rule);
         ruleEngine.fire(new SimpleFact("fact1", "v", 7, null), true);
         Thread.sleep(100);

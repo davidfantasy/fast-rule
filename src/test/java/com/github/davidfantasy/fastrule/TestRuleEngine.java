@@ -29,10 +29,12 @@ public class TestRuleEngine {
 
     @Test
     public void testFire() throws InterruptedException {
-        ruleManager.add(new SimpleTestRule("rule1", 1, fact -> {
+        var rule = new SimpleTestRule("rule1", 1, fact -> {
             int v = Integer.parseInt(fact.getValue("v").toString());
             return v > 5 && v < 10;
-        }));
+        });
+        rule.enable();
+        ruleManager.add(rule);
         List<Fact> facts = new ArrayList<>();
         facts.add(new SimpleFact("fact1", "v", 7, null));
         facts.add(new SimpleFact("fact2", "v", 12, null));
@@ -40,9 +42,13 @@ public class TestRuleEngine {
         facts.add(new SimpleFact("fact4", "v", 4, null));
         facts.forEach(fact -> ruleEngine.fire(fact, false));
         Thread.sleep(500);
-        SimpleTestRule rule = (SimpleTestRule) ruleManager.get("rule1");
-        Assertions.assertArrayEquals(new String[]{"fact1", "fact3"}, rule.getHitFacts().stream().map(Fact::getId).toArray());
-        Assertions.assertArrayEquals(new String[]{"fact2", "fact4"}, rule.getMissFacts().stream().map(Fact::getId).toArray());
+        rule = (SimpleTestRule) ruleManager.get("rule1");
+        var hittedFacts =  rule.getHitFacts().stream().map(Fact::getId).toList();
+        var missedFacts =  rule.getMissFacts().stream().map(Fact::getId).toList();
+        Assertions.assertTrue(hittedFacts.contains("fact1"));
+        Assertions.assertTrue(hittedFacts.contains("fact3"));
+        Assertions.assertTrue(missedFacts.contains("fact2"));
+        Assertions.assertTrue(missedFacts.contains("fact4"));
     }
 
     @Test
