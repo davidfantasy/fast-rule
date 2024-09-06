@@ -22,20 +22,22 @@ public class SimpleDelayStatefulTriggerRule extends DelayStatefulTriggerRule {
     }
 
     @Override
-    protected void doExecuteThen(Fact fact) {
+    protected boolean doExecuteThen(Fact fact) {
         hitFacts.add(fact);
+        return true;
     }
 
     @Override
-    protected void doExecuteElse(Fact fact) {
+    protected boolean doExecuteElse(Fact fact) {
         missFacts.add(fact);
+        return true;
     }
 
     public void clear() {
-        triggeredFactIds.clear();
         delayedFacts.clear();
         hitFacts.clear();
         missFacts.clear();
+        triggered.set(false);
     }
 
 }

@@ -82,13 +82,7 @@ public abstract class BaseRule implements Rule {
             log.warn("try to evaluate a disabled rule：{}，{}", this.name, this.id);
             return false;
         }
-        try {
-            return this.condition.evaluate(fact);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("rule condition evaluation encountered an error：{}，{}，{}", this.name, fact.getId(), e.getMessage());
-        }
-        return false;
+        return this.condition.evaluate(fact);
     }
 
     @Override

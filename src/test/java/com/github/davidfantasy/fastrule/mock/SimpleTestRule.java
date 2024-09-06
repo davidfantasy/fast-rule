@@ -22,6 +22,11 @@ public class SimpleTestRule extends BaseRule {
     }
 
     @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
     public void executeThen(Fact fact) {
         hitFacts.add(fact);
     }

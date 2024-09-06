@@ -59,7 +59,7 @@ public class RuleTaskEventHandler implements WorkHandler<RuleTaskEvent> {
                         }
                     }
                 } catch (Exception e) {
-                    log.error("evaluate rule:{} failed", rule.getName(), e);
+                    log.error("evaluate rule failed: " + rule.getName(), e);
                     if (config.isSkipOnFirstFailedRule()) {
                         log.debug("next rules will be skipped since parameter skipOnFirstFailedRule is set:{}", fact.getId());
                         return false;
