@@ -15,7 +15,7 @@ fast-rule的设计思路可以参考我写的这篇文章：
 <dependency>
     <groupId>com.github.davidfantasy</groupId>
     <artifactId>fast-rule</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 ## 简单示例
@@ -63,8 +63,7 @@ private boolean skipOnFirstFailedRule;
 框架提供了DelayStatefulTriggerRule，用于支持规则的单次触发模式和延迟触发模式，相关说明如下：
 ~~~java
 /**
- * 有状态的规则，会保存每个触发过当前规则的fact，同时支持规则的延迟触发。
- * 相同的采集fact对于同一规则只会触发一次，直到某个fact不再满足该规则条件时，后续的fact才会重新触发该规则
+ * 有状态的规则，会保存规则的触发状态，触发中的规则不会被再次触发，直到某个fact不再满足规则条件重置规则的触发状态；
  * 举例：
  * rule1 当 fact a>5 时触发执行
  * 当规则引擎收到 5个采集的a的值时：
@@ -73,7 +72,7 @@ private boolean skipOnFirstFailedRule;
  * a=8 满足，但不会执行rule1，因为前面已经触发过了
  * a=4 不满足，不会执行rule1，但会重置规则的执行状态
  * a=7 满足，执行rule1
- * 延迟触发，举例：
+ * 同时支持fact对规则的延迟触发，举例：
  * rule1 当 fact a>5 时触发执行，triggerDelayMS设置5000
  * 当规则引擎收到 4个采集的a的值时：
  * a=1 不满足，不会执行rule1
