@@ -4,6 +4,8 @@ import com.github.davidfantasy.fastrule.Rule;
 import com.github.davidfantasy.fastrule.RuleManager;
 import com.github.davidfantasy.fastrule.RulesEngineConfig;
 import com.github.davidfantasy.fastrule.fact.Fact;
+import com.github.davidfantasy.fastrule.util.RateLimitedLogger;
+import com.lmax.disruptor.InsufficientCapacityException;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.WorkHandler;
 import com.lmax.disruptor.dsl.Disruptor;
@@ -18,6 +20,8 @@ public class RuleTaskExecutor {
     private final Disruptor<RuleTaskEvent> disruptor;
 
     private RingBuffer<RuleTaskEvent> ringBuffer;
+
+    private final static RateLimitedLogger rateLimitedLogger = new RateLimitedLogger(1000, 1);
 
     public RuleTaskExecutor(int bufferSize, int numberOfConsumers) {
         RuleTaskEventFactory eventFactory = new RuleTaskEventFactory();
@@ -57,10 +61,13 @@ public class RuleTaskExecutor {
     }
 
     public void submit(Fact fact, Rule rule, RulesEngineConfig rulesEngineConfig) {
-        if (ringBuffer == null) {
-            throw new IllegalStateException("RuleTaskExecutor is not started");
+        long sequence = 0;
+        try {
+            sequence = ringBuffer.tryNext();
+        } catch (InsufficientCapacityException e) {
+            rateLimitedLogger.logError("ruleExecutor submit failed, buffer is full");
+            return;
         }
-        long sequence = ringBuffer.next();
         try {
             RuleTaskEvent event = ringBuffer.get(sequence);
             event.setRule(rule);
@@ -72,10 +79,13 @@ public class RuleTaskExecutor {
     }
 
     public void submit(Fact fact, RuleManager ruleManager, RulesEngineConfig rulesEngineConfig) {
-        if (ringBuffer == null) {
-            throw new IllegalStateException("RuleTaskExecutor is not started");
+        long sequence = 0;
+        try {
+            sequence = ringBuffer.tryNext();
+        } catch (InsufficientCapacityException e) {
+            rateLimitedLogger.logError("ruleExecutor submit failed, buffer is full");
+            return;
         }
-        long sequence = ringBuffer.next();
         try {
             RuleTaskEvent event = ringBuffer.get(sequence);
             event.setFact(fact);

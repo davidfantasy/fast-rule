@@ -96,7 +96,7 @@ public class DefaultRuleEngine implements RuleEngine {
             ruleTaskExecutor.submit(fact, ruleManager, this.rulesEngineConfig);
         } else {
             ruleManager.forEach(rule -> {
-                if (rule.isEnabled()) {
+                if (rule.isEnabled() && rule.preEvaluate(fact)) {
                     ruleTaskExecutor.submit(fact, rule, null);
                 }
                 return true;

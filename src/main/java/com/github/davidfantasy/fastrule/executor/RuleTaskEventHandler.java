@@ -21,10 +21,6 @@ public class RuleTaskEventHandler implements WorkHandler<RuleTaskEvent> {
     }
 
     private void executeWithSingleRule(Rule rule, Fact fact) {
-        if (!rule.preEvaluate(fact)) {
-            log.debug("drop rule:{},{}", rule.getName(), fact.getId());
-            return;
-        }
         if (rule.evaluate(fact)) {
             log.debug("hit rule:{},{}", rule.getName(), fact.getId());
             rule.executeThen(fact);

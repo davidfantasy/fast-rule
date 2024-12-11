@@ -141,8 +141,11 @@ public abstract class DelayStatefulTriggerRule extends BaseRule {
                     delayedFacts.remove(fact.getId());
                 }
             }
-            if (doExecuteElse(fact)) {
-                this.triggered.set(false);
+            //只在当前仍处于触发状态时才触发恢复操作，提升性能处理表现
+            if (hasTriggered()) {
+                if (doExecuteElse(fact)) {
+                    this.triggered.set(false);
+                }
             }
         } finally {
             lock.unlock();
